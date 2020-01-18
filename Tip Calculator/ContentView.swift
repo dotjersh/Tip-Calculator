@@ -8,17 +8,25 @@
 
 import SwiftUI
 
+// Colors
+let BUTTON_COLOR = Color("TriadBlue")
+let CLEAR_BUTTON_COLOR = Color("TriadPurple")
+let BUTTON_TEXT_COLOR = Color(.white)
+let TIP_COLOR = Color(.black)
+let BILL_COLOR = Color(.black)
+let SETTINGS_COLOR = CLEAR_BUTTON_COLOR
+
+
+// ------------- ENUMS -------------
 enum NumButtons: String {
     case zero, one, two, three, four, five, six, seven, eight, nine
     case clear
-    
-    // Button Colour
     var backgroundColor: Color {
         switch self {
             case .clear:
-                return Color("ClearButton")
+                return CLEAR_BUTTON_COLOR
             default:
-                return Color("ButtonColor")
+                return BUTTON_COLOR
         }
     }
     var title: String {
@@ -37,8 +45,6 @@ enum NumButtons: String {
         }
     }
 }
-
-
 enum Coins: String {
     case one, two, three
     var image: String {
@@ -49,10 +55,10 @@ enum Coins: String {
         }
     }
 }
+// ------------- END ENUMS -------------
 
 
-// Env Obect
-// Treated as the Global Application State
+// ------------- GLOBAL OBJECT -------------
 class GlobalEnvironment: ObservableObject {
     
     var bill = ""
@@ -65,7 +71,7 @@ class GlobalEnvironment: ObservableObject {
             bill = ""
             tipValues = ["%10","%20","%30"]
             self.display = defaultScreen
-        } else if bill.count < 9 {
+        } else if bill.count < 5 {
             // Cannot start bill with 0
             if bill == "" && button.title != "0" || bill != ""{
                 bill += button.title
@@ -75,20 +81,29 @@ class GlobalEnvironment: ObservableObject {
             
         }
     }
-    
     func calcTip(tip: [String], bill: String) {
         var count = 0
         if Int(bill) != 0 {
             for i in [0.1,0.2,0.3] {
-                self.tipValues[count] = "$" + String(Int(round(i * Double(bill)!)))
-            
+                let value = String(Int(round(i * Double(bill)!)))
+                let contained = tipValues.contains("$"+value)
+                if value == "0" {
+                    self.tipValues[count] = "--"
+                } else if contained && count == 2 || contained && count == 1 {
+                    self.tipValues[count-1] = "--"
+                    self.tipValues[count] = "$" + value
+                } else {
+                     self.tipValues[count] = "$" + value
+                }
                 count += 1
             }
         }
     }
 }
+// ------------- END GLOBAL OBJECT -------------
 
 
+// ------------- MAIN VIEW -------------
 struct ContentView: View {
     
     @EnvironmentObject var env: GlobalEnvironment
@@ -108,15 +123,27 @@ struct ContentView: View {
             
             // Colours
             Color.white.edgesIgnoringSafeArea(.all)
-            
+                .statusBar(hidden: true)
             VStack (spacing: 12) {
+                HStack(alignment: .bottom) {
+                    Button(action: /*@START_MENU_TOKEN@*/{}/*@END_MENU_TOKEN@*/) {
+                        Text("Settings")
+                        .font(.custom("Chalkduster", size: 15))
+                        .foregroundColor(SETTINGS_COLOR)
+                        .offset(x: UIScreen.main.bounds.height/8, y: UIScreen.main.bounds.height/20)
+                    }
+                }
                 
                 // Tips View
                 HStack(alignment: .bottom) {
                     Spacer()
                     ForEach(env.tipValues, id: \.self) { tip in
-                        TipView(tip: tip)
-                            .offset(x: 0, y: UIScreen.main.bounds.height/16)
+                        TipView(tip: tip).allowsHitTesting(true)
+                        .offset(x: 0, y: UIScreen.main.bounds.height/16)
+                        .allowsTightening(true)
+                        .truncationMode(.middle)
+                    
+                        
                     }
                 }
                 
@@ -125,6 +152,7 @@ struct ContentView: View {
                     Spacer()
                     ForEach(coins, id: \.self) { coin in
                         CoinView(coin: coin)
+                        .scaleEffect((UIScreen.main.bounds.width)/350)
                     }
                 }
                 
@@ -132,10 +160,9 @@ struct ContentView: View {
                 HStack {
                     Spacer()
                     Text(env.display).foregroundColor(billColour)
-                        .font(.custom("Chalkduster", size: 40))
-                        .offset(x: -(UIScreen.main.bounds.width)/10, y: 0)
-                    // .font(.system(size: 40))
-                    
+                    .font(.custom("Chalkduster", size: 40))
+                    .offset(x: -(UIScreen.main.bounds.width)/10, y: 0)
+                    .foregroundColor(BILL_COLOR)
                 }.padding()
                 
                 // Button View
@@ -143,6 +170,8 @@ struct ContentView: View {
                     HStack (spacing: 12) {
                         ForEach(row, id: \.self) { button in
                             NumButtonView(button: button)
+                            .minimumScaleFactor(0.5)
+                            .scaleEffect((UIScreen.main.bounds.width)/350)
                         }
                     }
                 } // End loops
@@ -151,13 +180,14 @@ struct ContentView: View {
         }
         }
     }
+// ------------- END MAIN VIEW -------------
 
 
+// ------------- NESTED VIEWS -------------
 struct NumButtonView: View {
     // Enum type
     var button: NumButtons
     @EnvironmentObject var env: GlobalEnvironment
-    
     var body: some View {
         Button(action: {
             // Sends update
@@ -165,14 +195,12 @@ struct NumButtonView: View {
         }) {
             Text(button.title)
             .font(.custom("Chalkduster", size: 30))
-           
-                .frame(width: self.frameWidth(button: self.button), height: (UIScreen.main.bounds.width - 4 * 11) / 4)
-            .foregroundColor(.white)
+            .frame(width: self.frameWidth(button: self.button), height: (UIScreen.main.bounds.width - 4 * 11) / 4)
+            .foregroundColor(BUTTON_TEXT_COLOR)
             .background(button.backgroundColor)
             .cornerRadius(self.frameWidth(button: button) / 2)
         }
     }
-    
     func frameWidth(button: NumButtons) -> CGFloat {
         switch button {
             case .zero:
@@ -183,7 +211,6 @@ struct NumButtonView: View {
     }
 }
 
-
 struct CoinView: View {
     // Enum type
     var coin: Coins
@@ -191,27 +218,25 @@ struct CoinView: View {
     @EnvironmentObject var env: GlobalEnvironment
     
     var body: some View {
-       
         Image(coin.image)
-            .foregroundColor(Color("CoinColor"))
-            .offset(x: -(UIScreen.main.bounds.width)/9, y: 0)
-            .frame(width: (UIScreen.main.bounds.width - 3 * 3) / 4, height: (UIScreen.main.bounds.width - 3 * 3) / 4)
-        
+        .offset(x: -(UIScreen.main.bounds.width)/9, y: 0)
+        .frame(width: (UIScreen.main.bounds.width - 3 * 3) / 4, height: (UIScreen.main.bounds.width - 3 * 3) / 4)
     }
 }
-
 
 struct TipView: View {
     @EnvironmentObject var env: GlobalEnvironment
     var tip: String
     var body: some View {
-        Text(tip)
+        Text(tip).scaledToFit()
         .font(.custom("Chalkduster", size: 30))
         .offset(x: -(UIScreen.main.bounds.width)/9, y: 0)
         .frame(width: (UIScreen.main.bounds.width - 3 * 3) / 4, height: (UIScreen.main.bounds.width - 3 * 3) / 4)
+        .foregroundColor(TIP_COLOR)
     }
     
 }
+// ------------- END NESTED VIEWS -------------
 
 
 struct ContentView_Previews: PreviewProvider {
