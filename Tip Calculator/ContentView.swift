@@ -9,8 +9,8 @@
 import SwiftUI
 
 // Colors
-let BUTTON_COLOR = Color("TriadBlue")
-let CLEAR_BUTTON_COLOR = Color("TriadPurple")
+let BUTTON_COLOR = Color(".black")
+let CLEAR_BUTTON_COLOR = Color(".black")
 let BUTTON_TEXT_COLOR = Color(.white)
 let TIP_COLOR = Color(.black)
 let BILL_COLOR = Color(.black)
